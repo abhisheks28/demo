@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - MSR Shop{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.products') }}">Products</a></li>
+            <li class="breadcrumb-item active">{{ product.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <!-- Product Image -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0">
+                <img src="{{ product.image_url }}" class="card-img-top rounded" alt="{{ product.name }}" 
+                     style="height: 400px; object-fit: cover;">
+            </div>
+        </div>
+        
+        <!-- Product Details -->
+        <div class="col-lg-6">
+            <div class="card border-0">
+                <div class="card-body">
+                    <span class="badge bg-primary mb-2">{{ product.category.name }}</span>
+                    <h2 class="card-title">{{ product.name }}</h2>
+                    
+                    {% if product.description %}
+                        <p class="text-muted">{{ product.description }}</p>
+                    {% else %}
+                        <p class="text-muted">No description available for this product.</p>
+                    {% endif %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <h4 class="text-primary">${{ "%.2f"|format(product.price) }}</h4>
+                        </div>
+                        <div class="col-6 text-end">
+                            <span class="badge bg-{% if product.stock > 10 %}success{% elif product.stock > 0 %}warning{% else %}danger{% endif %} fs-6">
+                                {% if product.stock > 0 %}
+                                    {{ product.stock }} in stock
+                                {% else %}
+                                    Out of stock
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <small class="text-muted">
+                            <i class="fas fa-store me-1"></i>
+                            Sold by: {{ product.owner.name }}
+                        </small>
+                    </div>
+                    
+                    {% if current_user.is_authenticated and current_user.role == 'customer' %}
+                        {% if product.stock > 0 %}
+                            <div class="d-flex gap-2 mb-3">
+                                <a href="{{ url_for('main.add_to_cart', product_id=product.id) }}" 
+                                   class="btn btn-primary flex-grow-1">
+                                    <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                                </a>
+                                <a href="{{ url_for('main.add_to_wishlist', product_id=product.id) }}" 
+                                   class="btn btn-outline-danger">
+                                    <i class="fas fa-heart me-2"></i>Wishlist
+                                </a>
+                            </div>
+                        {% else %}
+                            <button class="btn btn-secondary w-100" disabled>
+                                <i class="fas fa-times me-2"></i>Out of Stock
+                            </button>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Please <a href="{{ url_for('auth.login') }}" class="alert-link">login</a> to add items to cart.
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Product Features -->
+                    <div class="border-top pt-3 mt-4">
+                        <h6 class="mb-3">Why choose this product?</h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <i class="fas fa-shipping-fast fa-2x text-primary mb-2"></i>
+                                <small class="d-block text-muted">Fast Shipping</small>
+                            </div>
+                            <div class="col-4">
+                                <i class="fas fa-shield-alt fa-2x text-primary mb-2"></i>
+                                <small class="d-block text-muted">Secure Payment</small>
+                            </div>
+                            <div class="col-4">
+                                <i class="fas fa-undo fa-2x text-primary mb-2"></i>
+                                <small class="d-block text-muted">Easy Returns</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Related Products -->
+    <div class="mt-5">
+        <h4 class="mb-4">Related Products</h4>
+        <div class="row">
+            <!-- This would typically show products from the same category -->
+            <div class="col-12 text-center text-muted py-4">
+                <i class="fas fa-box-open fa-2x mb-2"></i>
+                <p>Related products will be displayed here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Cart - MSR Shop{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+            <li class="breadcrumb-item active">Shopping Cart</li>
+        </ol>
+    </nav>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shopping-cart me-2"></i>Shopping Cart</h2>
+        <a href="{{ url_for('main.products') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+        </a>
+    </div>
+    
+    {% if cart_items %}
+        <div class="row">
+            <!-- Cart Items -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Cart Items ({{ cart_items|length }})</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% for item in cart_items %}
+                        <div class="border-bottom p-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-2">
+                                    <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" 
+                                         class="img-fluid rounded" style="height: 80px; width: 80px; object-fit: cover;">
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="mb-1">{{ item.product.name }}</h6>
+                                    <small class="text-muted">{{ item.product.category.name }}</small>
+                                    <br>
+                                    <small class="text-muted">By {{ item.product.owner.name }}</small>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <span class="fw-bold text-primary">${{ "%.2f"|format(item.product.price) }}</span>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <a href="{{ url_for('main.update_cart', cart_id=item.id, action='decrease') }}" 
+                                           class="btn btn-outline-secondary btn-sm me-2">
+                                            <i class="fas fa-minus"></i>
+                                        </a>
+                                        <span class="mx-2 fw-bold">{{ item.quantity }}</span>
+                                        <a href="{{ url_for('main.update_cart', cart_id=item.id, action='increase') }}" 
+                                           class="btn btn-outline-secondary btn-sm ms-2">
+                                            <i class="fas fa-plus"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 text-center">
+                                    <span class="fw-bold">${{ "%.2f"|format(item.product.price * item.quantity) }}</span>
+                                </div>
+                                <div class="col-md-1 text-center">
+                                    <a href="{{ url_for('main.update_cart', cart_id=item.id, action='remove') }}" 
+                                       class="btn btn-outline-danger btn-sm"
+                                       onclick="return confirm('Remove this item from cart?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal ({{ cart_items|length }} items):</span>
+                            <span>${{ "%.2f"|format(total) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping:</span>
+                            <span class="text-success">Free</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax:</span>
+                            <span>Calculated at checkout</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total:</strong>
+                            <strong class="text-primary">${{ "%.2f"|format(total) }}</strong>
+                        </div>
+                        
+                        <a href="{{ url_for('main.checkout') }}" class="btn btn-primary w-100 py-2 mb-3">
+                            <i class="fas fa-credit-card me-2"></i>Proceed to Checkout
+                        </a>
+                        
+                        <a href="{{ url_for('main.products') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-shopping-bag me-2"></i>Continue Shopping
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Security Features -->
+                <div class="card border-0 bg-light mt-3">
+                    <div class="card-body text-center">
+                        <div class="row">
+                            <div class="col-4">
+                                <i class="fas fa-shield-alt fa-2x text-primary mb-2"></i>
+                                <small class="d-block text-muted">Secure Payment</small>
+                            </div>
+                            <div class="col-4">
+                                <i class="fas fa-truck fa-2x text-primary mb-2"></i>
+                                <small class="d-block text-muted">Fast Delivery</small>
+                            </div>
+                            <div class="col-4">
+                                <i class="fas fa-undo fa-2x text-primary mb-2"></i>
+                                <small class="d-block text-muted">Easy Returns</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Empty Cart -->
+        <div class="text-center py-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5">
+                    <i class="fas fa-shopping-cart fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted mb-3">Your Cart is Empty</h4>
+                    <p class="text-muted mb-4">Looks like you haven't added any items to your cart yet.</p>
+                    <a href="{{ url_for('main.products') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-shopping-bag me-2"></i>Start Shopping
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

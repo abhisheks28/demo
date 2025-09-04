@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - MSR Shop{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2">
+            <div class="bg-white rounded shadow-sm p-3">
+                <h6 class="text-muted mb-3">ADMIN PANEL</h6>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('main.admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('main.admin_super_admins') }}">
+                        <i class="fas fa-users-cog me-2"></i>Super Admins
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Admin Dashboard</h2>
+                <span class="badge bg-primary fs-6">{{ current_user.name }}</span>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Total Orders</h6>
+                                    <h3 class="mb-0">{{ total_orders }}</h3>
+                                </div>
+                                <i class="fas fa-box fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Total Revenue</h6>
+                                    <h3 class="mb-0">${{ "%.2f"|format(total_revenue) }}</h3>
+                                </div>
+                                <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Total Users</h6>
+                                    <h3 class="mb-0">{{ total_users }}</h3>
+                                </div>
+                                <i class="fas fa-users fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Super Admins</h6>
+                                    <h3 class="mb-0">{{ total_super_admins }}</h3>
+                                </div>
+                                <i class="fas fa-user-shield fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <!-- Revenue Chart -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Monthly Revenue</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="revenueChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Order Status Breakdown -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Order Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <!-- Top Products -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Top Selling Products</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if top_products %}
+                                <div class="list-group list-group-flush">
+                                    {% for product_name, total_sold in top_products %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>{{ product_name }}</span>
+                                        <span class="badge bg-primary rounded-pill">{{ total_sold }} sold</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No sales data available.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Orders -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Recent Orders</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_orders %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Order #</th>
+                                                <th>Customer</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for order in recent_orders %}
+                                            <tr>
+                                                <td>#{{ order.id }}</td>
+                                                <td>{{ order.customer.name }}</td>
+                                                <td>${{ "%.2f"|format(order.total_amount) }}</td>
+                                                <td>
+                                                    <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'shipped' %}info{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %}">
+                                                        {{ order.status.title() }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No recent orders.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Revenue Chart
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const revenueData = {{ monthly_revenue | tojson }};
+
+new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+        labels: revenueData.map(item => item.month),
+        datasets: [{
+            label: 'Revenue ($)',
+            data: revenueData.map(item => item.revenue),
+            borderColor: '#0d6efd',
+            backgroundColor: '#0d6efd20',
+            borderWidth: 2,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toFixed(2);
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Status Chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusData = {{ status_counts | tojson }};
+
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: statusData.map(item => item[0].charAt(0).toUpperCase() + item[0].slice(1)),
+        datasets: [{
+            data: statusData.map(item => item[1]),
+            backgroundColor: ['#ffc107', '#0dcaf0', '#198754', '#dc3545', '#6f42c1']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true
+    }
+});
+</script>
+{% endblock %}

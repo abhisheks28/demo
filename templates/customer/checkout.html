@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - MSR Shop{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.cart') }}">Cart</a></li>
+            <li class="breadcrumb-item active">Checkout</li>
+        </ol>
+    </nav>
+    
+    <div class="text-center mb-4">
+        <h2><i class="fas fa-credit-card me-2"></i>Checkout</h2>
+        <p class="text-muted">Complete your order securely</p>
+    </div>
+    
+    <!-- Progress Steps -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-center">
+                <div class="d-flex align-items-center">
+                    <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" 
+                         style="width: 40px; height: 40px;">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="bg-success" style="width: 60px; height: 2px;"></div>
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                         style="width: 40px; height: 40px;">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div class="bg-light" style="width: 60px; height: 2px;"></div>
+                    <div class="bg-light text-muted rounded-circle d-flex align-items-center justify-content-center" 
+                         style="width: 40px; height: 40px;">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-center mt-2">
+                <div class="d-flex" style="width: 200px;">
+                    <small class="text-success">Cart</small>
+                    <small class="text-primary mx-auto">Checkout</small>
+                    <small class="text-muted">Complete</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <form method="POST" action="{{ url_for('main.place_order') }}">
+        <div class="row">
+            <!-- Shipping Information -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-shipping-fast me-2"></i>Shipping Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="full_name" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" 
+                                       value="{{ current_user.name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Phone Number *</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Complete Address *</label>
+                            <textarea class="form-control" id="address" name="address" rows="3" 
+                                      placeholder="Street address, city, state, postal code" required></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="city" class="form-label">City *</label>
+                                <input type="text" class="form-control" id="city" name="city" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="state" class="form-label">State *</label>
+                                <input type="text" class="form-control" id="state" name="state" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="zip_code" class="form-label">ZIP Code *</label>
+                                <input type="text" class="form-control" id="zip_code" name="zip_code" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Method -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Method</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card payment-option" onclick="selectPayment('online')">
+                                    <div class="card-body text-center">
+                                        <input type="radio" name="payment_method" value="online" id="online" class="form-check-input me-2">
+                                        <label for="online" class="form-check-label">
+                                            <i class="fas fa-credit-card fa-2x text-primary mb-2 d-block"></i>
+                                            <strong>Online Payment</strong>
+                                            <br>
+                                            <small class="text-muted">Credit/Debit Card, UPI, Net Banking</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card payment-option" onclick="selectPayment('cod')">
+                                    <div class="card-body text-center">
+                                        <input type="radio" name="payment_method" value="cod" id="cod" class="form-check-input me-2">
+                                        <label for="cod" class="form-check-label">
+                                            <i class="fas fa-hand-holding-usd fa-2x text-success mb-2 d-block"></i>
+                                            <strong>Cash on Delivery</strong>
+                                            <br>
+                                            <small class="text-muted">Pay when you receive</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Your payment information is encrypted and secure. We never store your card details.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Cart Items -->
+                        <div class="mb-3">
+                            <h6 class="mb-3">Items ({{ cart_items|length }})</h6>
+                            {% for item in cart_items %}
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" 
+                                     class="me-2 rounded" style="width: 40px; height: 40px; object-fit: cover;">
+                                <div class="flex-grow-1">
+                                    <small class="fw-bold">{{ item.product.name }}</small>
+                                    <br>
+                                    <small class="text-muted">Qty: {{ item.quantity }}</small>
+                                </div>
+                                <small class="fw-bold">${{ "%.2f"|format(item.product.price * item.quantity) }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Price Breakdown -->
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>${{ "%.2f"|format(total) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping:</span>
+                            <span class="text-success">Free</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax:</span>
+                            <span>$0.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total:</strong>
+                            <strong class="text-primary">${{ "%.2f"|format(total) }}</strong>
+                        </div>
+                        
+                        <!-- Expected Delivery -->
+                        <div class="alert alert-success mb-3">
+                            <i class="fas fa-truck me-2"></i>
+                            <small>
+                                <strong>Expected Delivery:</strong><br>
+                                {{ (moment().add(5, 'days')).strftime('%B %d, %Y') if moment else '5-7 business days' }}
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success w-100 py-2 mb-3">
+                            <i class="fas fa-lock me-2"></i>Place Order
+                        </button>
+                        
+                        <a href="{{ url_for('main.cart') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Cart
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Security Information -->
+                <div class="card border-0 bg-light mt-3">
+                    <div class="card-body text-center">
+                        <i class="fas fa-shield-alt fa-2x text-success mb-2"></i>
+                        <h6>Secure Checkout</h6>
+                        <small class="text-muted">Your information is protected by SSL encryption</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+.payment-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid #e9ecef;
+}
+
+.payment-option:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.payment-option.selected {
+    border-color: #0d6efd;
+    background-color: #f8f9ff;
+}
+</style>
+
+<script>
+function selectPayment(method) {
+    // Remove selected class from all payment options
+    document.querySelectorAll('.payment-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked option
+    event.currentTarget.classList.add('selected');
+    
+    // Check the radio button
+    document.getElementById(method).checked = true;
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+    if (!paymentMethod) {
+        e.preventDefault();
+        alert('Please select a payment method.');
+        return false;
+    }
+});
+</script>
+{% endblock %}

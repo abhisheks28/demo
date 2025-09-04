@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Orders - MSR Shop{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2">
+            <div class="bg-white rounded shadow-sm p-3">
+                <h6 class="text-muted mb-3">SUPER ADMIN</h6>
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{{ url_for('main.super_admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('main.super_admin_products') }}">
+                        <i class="fas fa-box me-2"></i>Products
+                    </a>
+                    <a class="nav-link active" href="{{ url_for('main.super_admin_orders') }}">
+                        <i class="fas fa-shopping-cart me-2"></i>Orders
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Order Management</h2>
+                <div class="d-flex gap-2">
+                    <select class="form-select" style="width: auto;">
+                        <option>All Status</option>
+                        <option>Pending</option>
+                        <option>Processing</option>
+                        <option>Shipped</option>
+                        <option>Delivered</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Orders Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Orders Containing Your Products</h5>
+                </div>
+                <div class="card-body">
+                    {% if orders %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Items</th>
+                                        <th>Total</th>
+                                        <th>Payment</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in orders %}
+                                    <tr>
+                                        <td>
+                                            <strong>#{{ order.id }}</strong>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>{{ order.customer.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ order.customer.email }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                {{ order.created_at.strftime('%Y-%m-%d') }}
+                                                <br>
+                                                <small class="text-muted">{{ order.created_at.strftime('%H:%M') }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="small">
+                                                {% for item in order.order_items %}
+                                                    {% if item.product.super_admin_id == current_user.id %}
+                                                        <div>{{ item.product.name }} ({{ item.quantity }})</div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                        <td>${{ "%.2f"|format(order.total_amount) }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if order.payment_method == 'cod' %}warning{% else %}success{% endif %}">
+                                                {{ order.payment_method.upper() }}
+                                            </span>
+                                            <br>
+                                            <small class="badge bg-{% if order.payment_status == 'paid' %}success{% else %}warning{% endif %}">
+                                                {{ order.payment_status.title() }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'shipped' %}info{% elif order.status == 'processing' %}primary{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %}">
+                                                {{ order.status.title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if order.status in ['pending', 'processing', 'shipped'] %}
+                                                <div class="dropdown">
+                                                    <button class="btn btn-outline-primary btn-sm dropdown-toggle" 
+                                                            type="button" data-bs-toggle="dropdown">
+                                                        Update Status
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        {% if order.status == 'pending' %}
+                                                            <li>
+                                                                <a class="dropdown-item" 
+                                                                   href="{{ url_for('main.update_order_status', order_id=order.id, status='processing') }}">
+                                                                    Mark as Processing
+                                                                </a>
+                                                            </li>
+                                                        {% endif %}
+                                                        {% if order.status in ['pending', 'processing'] %}
+                                                            <li>
+                                                                <a class="dropdown-item" 
+                                                                   href="{{ url_for('main.update_order_status', order_id=order.id, status='shipped') }}">
+                                                                    Mark as Shipped
+                                                                </a>
+                                                            </li>
+                                                        {% endif %}
+                                                        {% if order.status == 'shipped' %}
+                                                            <li>
+                                                                <a class="dropdown-item" 
+                                                                   href="{{ url_for('main.update_order_status', order_id=order.id, status='delivered') }}">
+                                                                    Mark as Delivered
+                                                                </a>
+                                                            </li>
+                                                        {% endif %}
+                                                    </ul>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">No actions</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Orders Yet</h5>
+                            <p class="text-muted">Orders containing your products will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
