@@ -13,6 +13,7 @@ function initializeApp() {
     initializeQuantityControls();
     initializeSearchFeatures();
     initializeNotifications();
+    initializeCustomSlider(); // Initialize the custom slider
     
     // Add fade-in animation to cards
     animateCards();
@@ -423,3 +424,95 @@ function preventDoubleSubmission() {
 document.addEventListener('DOMContentLoaded', function() {
     preventDoubleSubmission();
 });
+
+// Custom Image Slider Initialization
+function initializeCustomSlider() {
+    const sliderContainer = document.querySelector('.custom-slider-container');
+    const sliderTrack = document.querySelector('.custom-slider-track');
+    let sliderItems = Array.from(document.querySelectorAll('.custom-slider-item'));
+    const prevButton = document.getElementById('prevSlide');
+    const nextButton = document.getElementById('nextSlide');
+
+    if (!sliderTrack || sliderItems.length === 0 || !prevButton || !nextButton) {
+        console.warn("Custom slider elements not found, skipping initialization.");
+        return;
+    }
+
+    const itemsPerView = 3; // Number of items to show at once
+    const totalRealItems = sliderItems.length;
+    let currentIndex = 0; // Index of the first item in the current view of *real* items
+
+    // Clone items for seamless looping
+    for (let i = 0; i < itemsPerView; i++) {
+        const cloneStart = sliderItems[i].cloneNode(true);
+        sliderTrack.appendChild(cloneStart);
+    }
+    for (let i = totalRealItems - itemsPerView; i < totalRealItems; i++) {
+        const cloneEnd = sliderItems[i].cloneNode(true);
+        sliderTrack.prepend(cloneEnd);
+    }
+
+    // Update sliderItems to include clones
+    sliderItems = Array.from(document.querySelectorAll('.custom-slider-item'));
+    const totalItemsWithClones = sliderItems.length;
+
+    // Initial position to show the first set of real items
+    let currentPosition = itemsPerView; // Start at the first real item after prepended clones
+
+    function showSlides(smoothTransition = true) {
+        if (smoothTransition) {
+            sliderTrack.style.transition = `transform 0.5s ease-in-out`;
+        } else {
+            sliderTrack.style.transition = `none`;
+        }
+
+        const offset = -currentPosition * (100 / itemsPerView);
+        sliderTrack.style.transform = `translateX(${offset}%)`;
+
+        // Remove popup from all items
+        sliderItems.forEach(item => item.classList.remove('center-popup'));
+
+        // Add popup to the center item of the current view
+        // We need to account for the cloned items at the beginning
+        const centerItemIndexInView = currentPosition + Math.floor(itemsPerView / 2);
+        if (sliderItems[centerItemIndexInView]) {
+            sliderItems[centerItemIndexInView].classList.add('center-popup');
+        }
+    }
+
+    function nextSlide() {
+        currentPosition++;
+        showSlides();
+
+        if (currentPosition >= totalRealItems + itemsPerView) {
+            // If we've passed the last real item (and are in clones), jump back to the start (first real item)
+            setTimeout(() => {
+                currentPosition = itemsPerView; // Jump to the first set of real items
+                showSlides(false); // No smooth transition for the jump
+            }, 500); // Match transition duration
+        }
+    }
+
+    function prevSlide() {
+        currentPosition--;
+        showSlides();
+
+        if (currentPosition < itemsPerView) {
+            // If we've passed the first real item (and are in clones), jump back to the end (last real item)
+            setTimeout(() => {
+                currentPosition = totalRealItems + itemsPerView - itemsPerView; // Jump to the last set of real items
+                showSlides(false); // No smooth transition for the jump
+            }, 500); // Match transition duration
+        }
+    }
+
+    // Event Listeners for buttons
+    nextButton.addEventListener('click', nextSlide);
+    prevButton.addEventListener('click', prevSlide);
+
+    // Automatic sliding with a 5-second interval
+    setInterval(nextSlide, 5000);
+
+    // Initial display
+    showSlides(false); // Initial display without transition
+}

@@ -2,11 +2,12 @@
 
 /* Root Variables for Light Theme */
 :root {
-    --primary-color: #0d6efd;
+    --primary-color: #fd7e14; /* Orange from logo */
+    --primary-color-rgb: 253, 126, 20; /* RGB values for --primary-color */
     --secondary-color: #6c757d;
     --success-color: #198754;
     --warning-color: #ffc107;
-    --danger-color: #dc3545;
+    --danger-color: #e66b00; /* A darker orange/red for danger */
     --info-color: #0dcaf0;
     --light-color: #f8f9fa;
     --dark-color: #212529;
@@ -87,18 +88,81 @@ body {
     border: 1px solid transparent;
 }
 
+.product-card .card-body {
+    padding: 0.5rem; /* Reduced padding */
+}
+
 .product-card:hover {
     border-color: var(--primary-color);
     box-shadow: 0 0.5rem 1.5rem rgba(13, 110, 253, 0.15);
     transform: translateY(-5px);
 }
 
+.product-card .card-title {
+    font-size: 0.9rem; /* Smaller title font size */
+    line-height: 1.2; /* Tighter line height for title */
+}
+
+.product-card .text-muted.small,
+.product-card .text-success.small {
+    font-size: 0.75rem; /* Even smaller text for brand, sales count, etc. */
+    line-height: 1.1; /* Tighter line height */
+}
+
+.product-card .h6.text-primary {
+    font-size: 1rem; /* Adjust price font size */
+}
+
+.product-card .d-flex.align-items-center.mb-0.mt-0 {
+    margin-top: 0 !important; /* Ensure no extra top margin */
+    margin-bottom: 0 !important; /* Ensure no extra bottom margin */
+}
+
+.product-card .mt-1.mb-0.small {
+    margin-top: 0.25rem !important; /* Slightly more space for delivery */
+    line-height: 1.1; /* Tighter line height for delivery info */
+}
+
+.product-card .d-flex.gap-2.mt-auto {
+    margin-top: 0.5rem !important; /* Adjusted margin for buttons */
+}
+
+.product-card .position-relative {
+    margin-bottom: 0.25rem; /* Reduce space below image */
+}
+
 .product-card .card-img-top {
     transition: transform 0.3s ease;
+    height: 30px; /* Even further reduced height for smaller cards */
 }
 
 .product-card:hover .card-img-top {
     transform: scale(1.05);
+}
+
+/* Custom Dropdown for Categories */
+.custom-dropdown {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--light-color);
+    padding: 0.5rem 1rem;
+    height: calc(2.25rem + 2px); /* Match Bootstrap form-control height */
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--dark-color);
+    -webkit-appearance: none; /* Remove default arrow */
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+}
+
+.custom-dropdown:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
 /* Button Enhancements */
@@ -115,12 +179,30 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #0d6efd 0%, #0051d2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, #e66b00 100%); /* Adjusted gradient */
     border: none;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #0051d2 0%, #003d9e 100%);
+    background: linear-gradient(135deg, #e66b00 0%, #cc5f00 100%); /* Adjusted hover gradient */
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    color: var(--white-color);
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary.active,
+.btn-outline-primary.active {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--white-color) !important;
 }
 
 .btn-success {
@@ -134,7 +216,7 @@ body {
 
 /* Hero Section */
 .hero-section {
-    background: linear-gradient(135deg, #0d6efd 0%, #0051d2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, #e66b00 100%); /* Adjusted gradient */
     position: relative;
     overflow: hidden;
 }
@@ -354,7 +436,7 @@ footer {
 }
 
 .bg-gradient-primary {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #0051d2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, #e66b00 100%); /* Adjusted gradient */
 }
 
 .bg-gradient-success {
@@ -375,7 +457,7 @@ footer {
 
 .payment-option.selected {
     border-color: var(--primary-color) !important;
-    background-color: rgba(13, 110, 253, 0.05);
+    background-color: rgba(var(--primary-color-rgb), 0.05); /* Use RGB for transparency */
 }
 
 /* Timeline for Profile Page */
@@ -416,5 +498,223 @@ footer {
     
     body {
         background-color: white !important;
+    }
+}
+
+/* Custom Slider Styles */
+.custom-slider-container {
+    overflow: hidden;
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+}
+
+.custom-slider-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.custom-slider-item {
+    min-width: calc(100% / 3); /* Show 3 items at a time */
+    box-sizing: border-box;
+    padding: 10px; /* Space between images */
+    text-align: center;
+    position: relative;
+}
+
+.custom-slider-item img {
+    width: 100%;
+    height: 250px; /* Fixed height for consistency */
+    object-fit: cover; /* Cover the area, may crop */
+    border-radius: 8px;
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, filter 0.3s ease-in-out, top 0.3s ease-in-out;
+}
+
+.custom-slider-item.center-popup img {
+    transform: scale(1.3); /* Much larger popup effect */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); /* Stronger shadow */
+    filter: brightness(1.1); /* Slightly brighter */
+    z-index: 10; /* Bring to front */
+    position: relative; /* Needed for z-index to work correctly */
+    top: -10px; /* Move slightly up to enhance popup feel */
+}
+
+.slider-controls {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    padding: 0 15px; /* Add some padding from the edges */
+    z-index: 5; /* Ensure controls are above images */
+}
+
+.slider-controls button {
+    background-color: rgba(90, 92, 105, 0.8); /* Dark grey with transparency */
+    border: none;
+    color: white;
+    width: 45px; /* Larger touch target */
+    height: 45px;
+    border-radius: 8px; /* Rounded square */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.slider-controls button:hover {
+    background-color: rgba(90, 92, 105, 1); /* Solid dark grey on hover */
+}
+
+.slider-controls button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(90, 92, 105, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .custom-slider-item {
+        min-width: calc(100% / 2); /* Show 2 items on medium screens */
+    }
+}
+
+@media (max-width: 576px) {
+    .custom-slider-item {
+        min-width: 100%; /* Show 1 item on small screens */
+    }
+}
+
+/* Categories Section */
+.category-card {
+    color: #fff; /* Default to white for description/button over image */
+    min-height: 250px; /* Adjust total card height */
+    display: flex;
+    flex-direction: column; /* Stack title above image content */
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden; /* Ensure content and image respect border-radius */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add a subtle shadow to the card */
+}
+
+.category-card .card-title {
+    color: #000; /* Black text for the title */
+    background-color: #fff; /* White background for the title */
+    width: 100%;
+    padding: 10px 15px; /* Padding for the title */
+    text-shadow: none; /* Remove text shadow for the title */
+    box-sizing: border-box; /* Include padding in width */
+    text-align: center; /* Center the title text */
+}
+
+.category-image-content {
+    background-size: cover;
+    background-position: center;
+    flex-grow: 1; /* Make it fill remaining space */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 15px; /* Padding inside the image content area */
+    position: relative;
+    z-index: 0; /* Behind other content for overlay */
+}
+
+/* Ensure the text and button inside image content are visible */
+.category-image-content .card-text,
+.category-image-content .btn {
+    position: relative;
+    z-index: 3; /* Above any potential overlay */
+    color: #fff; /* White text for readability over image */
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8); /* Strong shadow for readability */
+}
+
+.category-image-content .btn {
+    background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent white button */
+    color: #000; /* Black text for button */
+    border: none;
+}
+
+.category-image-content .btn:hover {
+    background-color: #fff; /* Solid white on hover */
+}
+
+.category-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4); /* Subtle dark overlay for readability */
+    border-radius: 0 0 8px 8px; /* Rounded only at bottom to match card */
+    z-index: 1;
+    display: block; /* Make overlay visible again */
+}
+
+.card-body.text-center img {
+    opacity: 0.6; /* Adjust as needed for desired transparency */
+    background-color: transparent; /* Ensure background is transparent */
+}
+
+.card-body .fa-3x {
+    opacity: 0.6; /* Apply transparency to fallback icons as well */
+}
+
+/* Featured Products */
+
+/* Navigation Bar Search Bar */
+.custom-search-bar {
+    flex-grow: 1; /* Allow the search bar to take up available space */
+    max-width: 600px; /* Set a maximum width for larger screens */
+    margin-left: 20px; /* Add some space from the left nav items */
+    margin-right: 20px; /* Add some space from the right nav items */
+}
+
+.custom-search-bar .input-group {
+    border: 2px solid #fd7e14; /* Orange border */
+    border-radius: 5px; /* Slightly rounded corners */
+    overflow: hidden; /* Ensures child elements respect border-radius */
+}
+
+.custom-search-bar .form-select.custom-dropdown {
+    background-color: var(--light-color); /* Light gray background */
+    border: none;
+    border-right: 1px solid var(--border-color); /* Separator line */
+    width: 100px; /* Fixed width for the dropdown */
+    flex-grow: 0; /* Prevent it from growing */
+    padding-right: 25px; /* Space for dropdown arrow */
+    -webkit-appearance: none; /* Remove default arrow on WebKit */
+    -moz-appearance: none; /* Remove default arrow on Firefox */
+    appearance: none; /* Remove default arrow */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e"); /* Custom SVG arrow */
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: 16px 12px;
+}
+
+.custom-search-bar .form-control.custom-search-input {
+    border: none;
+    box-shadow: none; /* Remove focus shadow */
+    flex-grow: 1; /* Allow search input to grow */
+}
+
+.custom-search-bar .btn.custom-search-button {
+    background-color: #fd7e14; /* Orange background */
+    color: #fff; /* White icon */
+    border: none;
+    border-radius: 0 5px 5px 0; /* Rounded only on the right */
+}
+
+.custom-search-bar .btn.custom-search-button:hover {
+    background-color: #e66b00; /* Darker orange on hover */
+}
+
+/* Responsive adjustments for search bar */
+@media (max-width: 991.98px) {
+    .custom-search-bar {
+        width: 100%;
+        margin-top: 10px;
     }
 }

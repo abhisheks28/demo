@@ -1,21 +1,75 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, session
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
-from models import User, Product, Category, Order, OrderItem, Cart, Wishlist, Payment
+from models import User, Product, Category, Order, OrderItem, Cart, Wishlist, Payment, ProductImage
 from utils import admin_required, super_admin_required, generate_unique_code, allowed_file
 import os
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc
+from app import supabase_client
+import io
+from supabase.lib.client_options import ClientOptions
 
 main_bp = Blueprint('main', __name__)
+
+def get_authenticated_supabase_client():
+    jwt = session.get('supabase_jwt')
+    if not jwt:
+        flash('Supabase session not found. Please log in again.', 'error')
+        return None
+    
+    # Create a new Supabase client with the authenticated JWT
+    from supabase import create_client
+    supabase_url = current_app.config["SUPABASE_URL"]
+    supabase_key = current_app.config["SUPABASE_KEY"]
+    
+    # Use ClientOptions to pass headers correctly
+    options = ClientOptions()
+    options.headers = {"Authorization": f"Bearer {jwt}"}
+    return create_client(supabase_url, supabase_key, options=options)
+
 
 @main_bp.route('/')
 def index():
     # Get featured products (latest 8 products)
     featured_products = Product.query.filter_by(is_active=True).order_by(desc(Product.created_at)).limit(8).all()
     categories = Category.query.all()
-    return render_template('index.html', featured_products=featured_products, categories=categories)
+    
+    # Get slider images
+    slider_folder = os.path.join(current_app.root_path, 'static', 'Slider')
+    slider_images = []
+    if os.path.exists(slider_folder):
+        for filename in os.listdir(slider_folder):
+            if filename.lower().endswith( ('.png', '.jpg', '.jpeg', '.gif') ):
+                slider_images.append(url_for('static', filename=f'Slider/{filename}'))
+
+    # Get category icon images
+    category_icons_folder = os.path.join(current_app.root_path, 'static', 'Cat')
+    category_icon_map = {}
+    if os.path.exists(category_icons_folder):
+        for filename in os.listdir(category_icons_folder):
+            if filename.lower().endswith( ('.png', '.jpg', '.jpeg', '.gif') ):
+                # Assuming image filename matches category name (e.g., "Electronics.png" for "Electronics")
+                category_name_from_file = os.path.splitext(filename)[0].replace(' ', '_').replace('&', 'and') # Normalize for matching
+                category_icon_map[category_name_from_file] = url_for('static', filename=f'Cat/{filename}')
+
+    # Attach icon URLs to categories
+    categories_with_icons = []
+    for category in categories:
+        normalized_category_name = category.name.replace(' ', '_').replace('&', 'and')
+        category_dict = {
+            'id': category.id,
+            'name': category.name,
+            'description': category.description,
+            'icon_url': category_icon_map.get(normalized_category_name)
+        }
+        categories_with_icons.append(category_dict)
+
+    return render_template('index.html', 
+                           featured_products=featured_products, 
+                           categories=categories_with_icons,
+                           slider_images=slider_images)
 
 # Admin Routes
 @main_bp.route('/admin/dashboard')
@@ -46,15 +100,18 @@ def admin_dashboard():
     status_counts = db.session.query(
         Order.status, func.count(Order.id)
     ).group_by(Order.status).all()
-    
+    status_counts = [{ "status": s, "count": c } for s, c in status_counts]
+
     # Top selling products
     top_products = db.session.query(
         Product.name, func.sum(OrderItem.quantity).label('total_sold')
     ).join(OrderItem).group_by(Product.id).order_by(desc('total_sold')).limit(5).all()
-    
+    top_products = [{ "name": p, "total_sold": s } for p, s in top_products]
+
     # Recent orders
     recent_orders = Order.query.order_by(desc(Order.created_at)).limit(10).all()
-    
+    recent_orders = [order.to_dict() for order in recent_orders] # Assuming Order model has a to_dict method
+
     return render_template('admin/dashboard.html',
                          total_orders=total_orders,
                          total_revenue=total_revenue,
@@ -70,7 +127,8 @@ def admin_dashboard():
 @admin_required
 def admin_super_admins():
     super_admins = User.query.filter_by(role='super_admin').all()
-    return render_template('admin/super_admins.html', super_admins=super_admins)
+    categories = Category.query.all() # Fetch all categories
+    return render_template('admin/super_admins.html', super_admins=super_admins, categories=categories)
 
 @main_bp.route('/admin/create-super-admin', methods=['POST'])
 @login_required
@@ -78,9 +136,9 @@ def admin_super_admins():
 def create_super_admin():
     username = request.form.get('username')
     email = request.form.get('email')
-    category_name = request.form.get('category')
+    selected_category_ids = request.form.getlist('categories') # Get list of selected category IDs
     
-    if not all([username, email, category_name]):
+    if not all([username, email, selected_category_ids]):
         flash('Please fill in all fields.', 'error')
         return redirect(url_for('main.admin_super_admins'))
     
@@ -92,21 +150,21 @@ def create_super_admin():
     # Generate unique code
     unique_code = generate_unique_code()
     
-    # Create or get category
-    category = Category.query.filter_by(name=category_name).first()
-    if not category:
-        category = Category(name=category_name, description=f'Products for {category_name}')
-        db.session.add(category)
-    
     # Create admin user with unique code (they will register later)
     admin_user = User(
         name=username,
         email=email,
         password_hash='',  # Will be set during registration
-        role='admin',
+        role='super_admin', # Ensure the role is super_admin
         unique_code=unique_code,
         is_active=False  # Will be activated after registration
     )
+    
+    # Associate selected categories with the super admin
+    for category_id in selected_category_ids:
+        category = Category.query.get(int(category_id))
+        if category:
+            admin_user.categories.append(category)
     
     try:
         db.session.add(admin_user)
@@ -176,6 +234,10 @@ def super_admin_products():
 @login_required
 @super_admin_required
 def add_product():
+    authenticated_supabase_client = get_authenticated_supabase_client()
+    if not authenticated_supabase_client:
+        return redirect(url_for('auth.login')) # Redirect to login if no JWT
+
     categories = Category.query.all()
     
     if request.method == 'POST':
@@ -184,10 +246,16 @@ def add_product():
         price = request.form.get('price')
         stock = request.form.get('stock')
         category_id = request.form.get('category_id')
+        original_price = request.form.get('original_price')
+        brand = request.form.get('brand')
+        dimensions = request.form.get('dimensions')
+        ratings = request.form.get('ratings')
+        num_ratings = request.form.get('num_ratings')
+        sales_count = request.form.get('sales_count')
         
         if not all([name, price, stock, category_id]):
             flash('Please fill in all required fields.', 'error')
-            return render_template('super_admin/add_product.html', categories=categories)
+            return redirect(url_for('main.add_product')) # Redirect on validation error
         
         try:
             product = Product(
@@ -196,19 +264,67 @@ def add_product():
                 price=float(price),
                 stock=int(stock),
                 category_id=int(category_id),
-                super_admin_id=current_user.id
+                super_admin_id=current_user.id,
+                original_price=float(original_price) if original_price else None,
+                brand=brand,
+                dimensions=dimensions,
+                ratings=float(ratings) if ratings else 0.0,
+                num_ratings=int(num_ratings) if num_ratings else 0,
+                sales_count=int(sales_count) if sales_count else 0
             )
             
-            # Handle image upload
-            if 'image' in request.files:
-                file = request.files['image']
-                if file and file.filename and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    # Add timestamp to filename to avoid conflicts
-                    filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
-                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
-                    product.image_url = f"/static/uploads/{filename}"
+            # Handle multiple image uploads
+            files = request.files.getlist('images')
+            uploaded_image_urls = []
+            if files:
+                for i, file in enumerate(files):
+                    if file and file.filename and allowed_file(file.filename):
+                        filename = secure_filename(file.filename)
+                        filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{filename}"
+                        
+                        # Upload to Supabase Storage
+                        try:
+                            with io.BytesIO(file.read()) as data:
+                                res = authenticated_supabase_client.storage.from_("product-images").upload(filename, data.getvalue(), {"content-type": file.content_type})
+                            
+                            # Check for error in the response object
+                            upload_error = None
+                            if isinstance(res, dict):
+                                upload_error = res.get("error", {}).get("message")
+                            # If it's an UploadResponse object and successful, it won't have an 'error' attribute
+                            # Only check for .error if it's explicitly present (e.g., a specific error response object)
+                            elif hasattr(res, "error") and res.error is not None:
+                                upload_error = res.error.message
+
+                            if upload_error:
+                                current_app.logger.error(f"Supabase upload error for {filename}: {upload_error}")
+                                raise Exception(upload_error)
+                            
+                            # Get public URL
+                            public_url_response = authenticated_supabase_client.storage.from_("product-images").get_public_url(filename)
+                            
+                            # The get_public_url method directly returns the URL string, or None if not found.
+                            # No need to check for .error or .get('error') here.
+                            image_url = public_url_response
+                            uploaded_image_urls.append(image_url)
+                        except Exception as e:
+                            flash(f'Failed to upload image to Supabase: {str(e)}', 'error')
+                            current_app.logger.error(f"Supabase upload exception: {e}")
+                            # Optionally, skip this image and continue or return early
+                            continue
+
+                        # file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                        # file.save(file_path)
+                        # image_url = f"/static/uploads/{filename}"
+                        
+                        product_image = ProductImage(
+                            image_url=image_url,
+                            is_primary=(i == 0) # Set the first image as primary
+                        )
+                        product.product_images.append(product_image)
+
+                if uploaded_image_urls:
+                    product.image_url = uploaded_image_urls[0] # Set the primary image URL in the Product model
             
             db.session.add(product)
             db.session.commit()
@@ -217,7 +333,7 @@ def add_product():
             
         except Exception as e:
             db.session.rollback()
-            flash('Failed to add product.', 'error')
+            flash(f'Failed to add product: {str(e)}', 'error')
     
     return render_template('super_admin/add_product.html', categories=categories)
 
@@ -225,35 +341,80 @@ def add_product():
 @login_required
 @super_admin_required
 def edit_product(product_id):
+    authenticated_supabase_client = get_authenticated_supabase_client()
+    if not authenticated_supabase_client:
+        return redirect(url_for('auth.login')) # Redirect to login if no JWT
+
     product = Product.query.filter_by(id=product_id, super_admin_id=current_user.id).first_or_404()
     categories = Category.query.all()
     
     if request.method == 'POST':
-        product.name = request.form.get('name')
-        product.description = request.form.get('description')
-        product.price = float(request.form.get('price'))
-        product.stock = int(request.form.get('stock'))
-        product.category_id = int(request.form.get('category_id'))
-        
-        # Handle image upload
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
-                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                file.save(file_path)
-                product.image_url = f"/static/uploads/{filename}"
-        
         try:
+            product.name = request.form.get('name')
+            product.description = request.form.get('description')
+            product.price = float(request.form.get('price'))
+            product.stock = int(request.form.get('stock'))
+            product.category_id = int(request.form.get('category_id'))
+            product.original_price = float(request.form.get('original_price')) if request.form.get('original_price') else None
+            product.brand = request.form.get('brand')
+            product.dimensions = request.form.get('dimensions')
+            product.ratings = float(request.form.get('ratings')) if request.form.get('ratings') else 0.0
+            product.num_ratings = int(request.form.get('num_ratings')) if request.form.get('num_ratings') else 0
+            product.sales_count = int(request.form.get('sales_count')) if request.form.get('sales_count') else 0
+
+            # Handle multiple image uploads for existing product
+            files = request.files.getlist('images')
+            if files:
+                for i, file in enumerate(files):
+                    if file and file.filename and allowed_file(file.filename):
+                        filename = secure_filename(file.filename)
+                        filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{filename}"
+                        
+                        # Upload to Supabase Storage
+                        try:
+                            with io.BytesIO(file.read()) as data:
+                                res = authenticated_supabase_client.storage.from_("product-images").upload(filename, data.getvalue(), {"content-type": file.content_type})
+                            
+                            upload_error = None
+                            if isinstance(res, dict):
+                                upload_error = res.get("error", {}).get("message")
+                            elif hasattr(res, "error") and res.error is not None:
+                                upload_error = res.error.message
+
+                            if upload_error:
+                                current_app.logger.error(f"Supabase upload error for {filename} during edit: {upload_error}")
+                                raise Exception(upload_error)
+                            
+                            # Get public URL
+                            public_url_response = authenticated_supabase_client.storage.from_("product-images").get_public_url(filename)
+                            image_url = public_url_response # This directly returns the URL string
+                        except Exception as e:
+                            flash(f'Failed to upload image to Supabase: {str(e)}', 'error')
+                            current_app.logger.error(f"Supabase upload exception during edit: {str(e)}")
+                            continue
+
+                        # file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                        # file.save(file_path)
+                        # image_url = f"/static/uploads/{filename}"
+                        
+                        product_image = ProductImage(
+                            product_id=product.id,
+                            image_url=image_url,
+                            is_primary=(len(product.product_images) == 0 and i == 0) # Set as primary if no images exist and it's the first upload
+                        )
+                        db.session.add(product_image)
+                        if len(product.product_images) == 0 and i == 0:
+                            product.image_url = image_url # Update primary image if none existed
+
+            
             db.session.commit()
             flash('Product updated successfully!', 'success')
             return redirect(url_for('main.super_admin_products'))
         except Exception as e:
             db.session.rollback()
-            flash('Failed to update product.', 'error')
+            flash(f'Failed to update product: {str(e)}', 'error')
     
-    return render_template('super_admin/edit_product.html', product=product, categories=categories)
+    return redirect(url_for('main.edit_product', product_id=product_id)) # Always redirect after POST
 
 @main_bp.route('/super-admin/delete-product/<int:product_id>')
 @login_required
@@ -314,8 +475,15 @@ def products():
     
     products = query.all()
     categories = Category.query.all()
+
+    user_wishlist_ids = []
+    if current_user.is_authenticated and current_user.role == 'customer':
+        user_wishlist_ids = [item.product_id for item in Wishlist.query.filter_by(user_id=current_user.id).all()]
     
-    return render_template('customer/products.html', products=products, categories=categories)
+    return render_template('customer/products.html', 
+                           products=products, 
+                           categories=categories,
+                           user_wishlist_ids=user_wishlist_ids)
 
 @main_bp.route('/product/<int:product_id>')
 def product_detail(product_id):
@@ -374,15 +542,17 @@ def add_to_wishlist(product_id):
     # Check if already in wishlist
     existing = Wishlist.query.filter_by(user_id=current_user.id, product_id=product_id).first()
     
-    if not existing:
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        flash('Product removed from wishlist!', 'success')
+    else:
         wishlist_item = Wishlist(user_id=current_user.id, product_id=product_id)
         db.session.add(wishlist_item)
         db.session.commit()
         flash('Product added to wishlist!', 'success')
-    else:
-        flash('Product already in wishlist!', 'info')
     
-    return redirect(url_for('main.product_detail', product_id=product_id))
+    return redirect(url_for('main.products')) # Redirect back to the products page
 
 @main_bp.route('/wishlist')
 @login_required
@@ -514,3 +684,30 @@ def update_profile():
         flash('Failed to update profile.', 'error')
     
     return redirect(url_for('main.profile'))
+
+@main_bp.route('/cancel-order/<int:order_id>')
+@login_required
+def cancel_order(order_id):
+    order = Order.query.filter_by(id=order_id, customer_id=current_user.id).first_or_404()
+    
+    if order.status not in ['pending', 'processing']:
+        flash('Order cannot be cancelled at this stage.', 'error')
+        return redirect(url_for('main.orders'))
+    
+    try:
+        order.status = 'cancelled'
+        
+        # Restore product stock
+        for item in order.order_items:
+            product = Product.query.get(item.product_id)
+            if product:
+                product.stock += item.quantity
+        
+        db.session.commit()
+        flash('Order cancelled successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Order cancellation error: {e}")
+        flash('Failed to cancel order. Please try again.', 'error')
+        
+    return redirect(url_for('main.orders'))

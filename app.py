@@ -1,10 +1,15 @@
 import os
+from dotenv import load_dotenv
 import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from supabase import create_client, Client
+
+# Load environment variables
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -15,6 +20,11 @@ class Base(DeclarativeBase):
 # Initialize extensions
 db = SQLAlchemy(model_class=Base)
 login_manager = LoginManager()
+
+# Initialize Supabase client
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+supabase_client: Client = create_client(supabase_url, supabase_key)
 
 def create_app():
     # Create the app
@@ -30,9 +40,13 @@ def create_app():
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     
+    # Configure Supabase credentials
+    app.config["SUPABASE_URL"] = os.environ.get("SUPABASE_URL")
+    app.config["SUPABASE_KEY"] = os.environ.get("SUPABASE_KEY")
+
     # Configure upload folder
-    app.config['UPLOAD_FOLDER'] = 'static/uploads'
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+    # app.config['UPLOAD_FOLDER'] = 'static/uploads'
+    # app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
     
     # Initialize extensions with app
     db.init_app(app)
@@ -40,10 +54,30 @@ def create_app():
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
+
+    # Import and register blueprints
+    from routes import main_bp
+    from auth import auth_bp
+    # from api import api_bp # Commented out as api.py not found or not in use
     
-    # Create upload directory if it doesn't exist
-    os.makedirs(os.path.join(app.instance_path, app.config['UPLOAD_FOLDER']), exist_ok=True)
+    app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
+    # app.register_blueprint(api_bp) # Commented out as api.py not found or not in use
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        from models import User # Import User model inside to avoid circular imports
+        return User.query.get(int(user_id))
+
+    @app.context_processor
+    def inject_global_data():
+        from models import Category
+        all_categories = Category.query.all()
+        return dict(all_categories=all_categories)
     
+    return app # Return the app instance for Gunicorn
+
+def init_db_and_admin(app):
     with app.app_context():
         # Import models to ensure they are registered
         import models
@@ -51,12 +85,19 @@ def create_app():
         # Create tables
         db.create_all()
         
-        # Import and register blueprints
-        from routes import main_bp
-        from auth import auth_bp
-        
-        app.register_blueprint(main_bp)
-        app.register_blueprint(auth_bp, url_prefix='/auth')
+        # Add default categories if they don't exist
+        from models import Category
+        default_categories = [
+            "Electronics", "Books", "Clothing", "Home & Kitchen", "Beauty & Personal Care",
+            "Sports & Outdoors", "Toys & Games", "Automotive", "Pet Supplies", "Health & Household",
+            "Movies & TV", "Music", "Video Games", "Garden & Outdoor", "Baby Products",
+            "Office Products", "Industrial & Scientific", "Handmade", "Collectibles & Fine Art"
+        ]
+        for cat_name in default_categories:
+            if not Category.query.filter_by(name=cat_name).first():
+                category = Category(name=cat_name, description=f'{cat_name} products')
+                db.session.add(category)
+        db.session.commit()
         
         # Create default admin user if it doesn't exist
         from models import User
@@ -73,13 +114,8 @@ def create_app():
             db.session.add(admin_user)
             db.session.commit()
             logging.info("Default admin user created: admin@msrshop.com / admin123")
-    
-    return app
 
-# Create app instance
-app = create_app()
-
-@login_manager.user_loader
-def load_user(user_id):
-    from models import User
-    return User.query.get(int(user_id))
+if __name__ == '__main__':
+    app = create_app()
+    init_db_and_admin(app)
+    # app.run(debug=True) # This line is removed as per the new_code.

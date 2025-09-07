@@ -56,7 +56,7 @@
                                     {% for product in products %}
                                     <tr>
                                         <td>
-                                            <img src="{{ product.image_url }}" alt="{{ product.name }}" 
+                                            <img src="{{ product.image_url or 'https://via.placeholder.com/60x60?text=No+Image' }}" alt="{{ product.name }}" 
                                                  class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
                                         </td>
                                         <td>

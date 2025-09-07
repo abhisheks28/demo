@@ -43,6 +43,7 @@
                                         <th>ID</th>
                                         <th>Name</th>
                                         <th>Email</th>
+                                        <th>Categories</th>
                                         <th>Unique Code</th>
                                         <th>Status</th>
                                         <th>Created At</th>
@@ -55,6 +56,15 @@
                                         <td>{{ super_admin.id }}</td>
                                         <td>{{ super_admin.name }}</td>
                                         <td>{{ super_admin.email }}</td>
+                                        <td>
+                                            {% if super_admin.categories %}
+                                                {% for category in super_admin.categories %}
+                                                    <span class="badge bg-info">{{ category.name }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             <code>{{ super_admin.unique_code or 'N/A' }}</code>
                                         </td>
@@ -109,10 +119,13 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="category" class="form-label">Category</label>
-                        <input type="text" class="form-control" id="category" name="category" 
-                               placeholder="e.g., Electronics, Fashion, Books" required>
-                        <small class="text-muted">This will be their product category</small>
+                        <label for="categories" class="form-label">Categories</label>
+                        <select class="form-select" id="categories" name="categories" multiple aria-label="Select Categories" required>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Select one or more product categories for the Super Admin.</small>
                     </div>
                     
                     <div class="alert alert-info">
@@ -129,4 +142,16 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#categories').select2({
+            placeholder: "Select one or more product categories",
+            allowClear: true,
+            dropdownParent: $('#createSuperAdminModal .modal-body')
+        });
+    });
+</script>
 {% endblock %}

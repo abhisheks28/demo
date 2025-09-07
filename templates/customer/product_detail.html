@@ -13,11 +13,43 @@
     </nav>
     
     <div class="row">
-        <!-- Product Image -->
+        <!-- Product Image Carousel -->
         <div class="col-lg-6 mb-4">
-            <div class="card border-0">
-                <img src="{{ product.image_url }}" class="card-img-top rounded" alt="{{ product.name }}" 
-                     style="height: 400px; object-fit: cover;">
+            <div id="productImageCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {% if product.product_images %}
+                        {% for image in product.product_images %}
+                            <div class="carousel-item {% if image.is_primary %}active{% endif %}">
+                                <img src="{{ image.image_url }}" class="d-block w-100 rounded" alt="{{ product.name }}"
+                                     style="height: 400px; object-fit: cover;">
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="carousel-item active">
+                            <img src="{{ product.image_url }}" class="d-block w-100 rounded" alt="{{ product.name }}"
+                                 style="height: 400px; object-fit: cover;">
+                        </div>
+                    {% endif %}
+                </div>
+                {% if product.product_images and product.product_images|length > 1 %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#productImageCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#productImageCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                {% endif %}
+            </div>
+            <div class="d-flex justify-content-center mt-2">
+                {% if product.product_images %}
+                    {% for image in product.product_images %}
+                        <img src="{{ image.image_url }}" class="img-thumbnail mx-1 {% if image.is_primary %}border border-primary{% endif %}"
+                             alt="{{ product.name }}" style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;"
+                             onclick="currentSlide({{ loop.index0 }})">
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
         
@@ -25,18 +57,48 @@
         <div class="col-lg-6">
             <div class="card border-0">
                 <div class="card-body">
+                    {% if product.brand %}
+                        <p class="text-muted mb-1">Visit the <a href="#">{{ product.brand }} Store</a></p>
+                    {% endif %}
                     <span class="badge bg-primary mb-2">{{ product.category.name }}</span>
                     <h2 class="card-title">{{ product.name }}</h2>
                     
+                    {% if product.ratings > 0 %}
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="text-warning me-2">
+                                {% for i in range(product.ratings|round(0, 'floor')|int) %}<i class="fas fa-star"></i>{% endfor %}
+                                {% if product.ratings % 1 >= 0.5 %}<i class="fas fa-star-half-alt"></i>{% endif %}
+                            </div>
+                            <span class="text-muted me-2">{{ "%.1f"|format(product.ratings) }}</span>
+                            <span class="text-muted">({{ product.num_ratings }} ratings)</span>
+                        </div>
+                    {% endif %}
+
+                    {% if product.sales_count > 0 %}
+                        <p class="text-success">{{ product.sales_count }}+ bought in past month</p>
+                    {% endif %}
+
                     {% if product.description %}
                         <p class="text-muted">{{ product.description }}</p>
                     {% else %}
                         <p class="text-muted">No description available for this product.</p>
                     {% endif %}
                     
+                    {% if product.dimensions %}
+                        <p class="text-muted"><strong>Dimensions:</strong> {{ product.dimensions }}</p>
+                    {% endif %}
+
                     <div class="row mb-4">
                         <div class="col-6">
-                            <h4 class="text-primary">${{ "%.2f"|format(product.price) }}</h4>
+                            <h4 class="text-primary">
+                                {% if product.original_price %}
+                                    <span class="text-decoration-line-through text-muted fs-5">${{ "%.2f"|format(product.original_price) }}</span>
+                                    ${{ "%.2f"|format(product.price) }}
+                                    <span class="text-danger fs-5 ms-2">-{{ "%.0f"|format(((product.original_price - product.price) / product.original_price) * 100) }}%</span>
+                                {% else %}
+                                    ${{ "%.2f"|format(product.price) }}
+                                {% endif %}
+                            </h4>
                         </div>
                         <div class="col-6 text-end">
                             <span class="badge bg-{% if product.stock > 10 %}success{% elif product.stock > 0 %}warning{% else %}danger{% endif %} fs-6">
@@ -115,4 +177,13 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function currentSlide(n) {
+        const carousel = new bootstrap.Carousel(document.getElementById('productImageCarousel'));
+        carousel.to(n);
+    }
+</script>
 {% endblock %}

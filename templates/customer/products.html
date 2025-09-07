@@ -4,27 +4,19 @@
 
 {% block content %}
 <div class="container py-4">
-    <!-- Search and Filter Section -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <form method="GET" class="d-flex">
-                <input type="text" class="form-control me-2" name="search" 
-                       placeholder="Search products..." value="{{ request.args.get('search', '') }}">
-                <button class="btn btn-primary" type="submit">
-                    <i class="fas fa-search"></i>
-                </button>
-            </form>
-        </div>
-        <div class="col-md-4">
-            <select class="form-select" onchange="filterByCategory(this.value)">
-                <option value="">All Categories</option>
-                {% for category in categories %}
-                <option value="{{ category.id }}" 
-                        {% if request.args.get('category') == category.id|string %}selected{% endif %}>
-                    {{ category.name }}
-                </option>
-                {% endfor %}
-            </select>
+    <!-- Category Tags Section -->
+    <div class="row mb-4 justify-content-center">
+        <div class="col-12 d-flex flex-wrap justify-content-center gap-2">
+            <a href="{{ url_for('main.products') }}" 
+               class="btn btn-outline-primary rounded-pill {% if not request.args.get('category') %}active{% endif %}">
+                All Categories
+            </a>
+            {% for category in categories %}
+            <a href="{{ url_for('main.products', category=category.id) }}" 
+               class="btn btn-outline-primary rounded-pill {% if request.args.get('category') == category.id|string %}active{% endif %}">
+                {{ category.name }}
+            </a>
+            {% endfor %}
         </div>
     </div>
     
@@ -33,39 +25,73 @@
         <div class="row">
             {% for product in products %}
             <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                <div class="card h-100 border-0 shadow-sm product-card">
-                    <div class="position-relative">
-                        <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" 
-                             style="height: 250px; object-fit: cover;">
-                        {% if product.stock < 10 %}
-                            <span class="position-absolute top-0 end-0 badge bg-warning m-2">Low Stock</span>
-                        {% endif %}
-                    </div>
-                    <div class="card-body d-flex flex-column">
-                        <h6 class="card-title">{{ product.name }}</h6>
-                        <p class="card-text text-muted flex-grow-1">
-                            {{ product.description[:100] if product.description else 'No description available' }}
-                            {% if product.description and product.description|length > 100 %}...{% endif %}
-                        </p>
-                        <div class="mb-2">
-                            <span class="badge bg-light text-dark">{{ product.category.name }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="h5 text-primary mb-0">${{ "%.2f"|format(product.price) }}</span>
-                            <small class="text-muted">{{ product.stock }} in stock</small>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <a href="{{ url_for('main.product_detail', product_id=product.id) }}" 
-                               class="btn btn-primary btn-sm flex-grow-1">View Details</a>
-                            {% if current_user.is_authenticated and current_user.role == 'customer' %}
-                                <a href="{{ url_for('main.add_to_wishlist', product_id=product.id) }}" 
-                                   class="btn btn-outline-danger btn-sm">
-                                    <i class="fas fa-heart"></i>
-                                </a>
+                <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="text-decoration-none text-dark">
+                    <div class="card h-100 border-0 shadow-sm product-card">
+                        <div class="position-relative">
+                            <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}" 
+                                 style="height: 250px; object-fit: cover;">
+                            {% if product.stock < 10 %}
+                                <span class="position-absolute top-0 end-0 badge bg-warning m-2">Low Stock</span>
+                            {% endif %}
+                            {% if product.original_price and product.price < product.original_price %}
+                                <span class="position-absolute top-0 start-0 badge bg-danger m-2">Limited time deal</span>
                             {% endif %}
                         </div>
+                        <div class="card-body d-flex flex-column">
+                            {% if product.brand %}
+                                <p class="text-muted mb-0 small">{{ product.brand }}</p>
+                            {% endif %}
+                            <h6 class="card-title mb-0">{{ product.name }}</h6>
+                            {% if product.ratings > 0 %}
+                                <div class="d-flex align-items-center mb-0 mt-0" style="line-height: 1;">
+                                    <div class="text-warning me-1 small">
+                                        {% for i in range(product.ratings|round(0, 'floor')|int) %}<i class="fas fa-star"></i>{% endfor %}
+                                        {% if product.ratings % 1 >= 0.5 %}<i class="fas fa-star-half-alt"></i>{% endif %}
+                                    </div>
+                                    <small class="text-muted">({{ product.num_ratings }})</small>
+                                </div>
+                            {% endif %}
+                            {% if product.sales_count > 0 %}
+                                <p class="card-text text-success mb-0 small">{{ product.sales_count }}+ bought in past month</p>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-1" style="line-height: 1;">
+                                <div>
+                                    {% if product.original_price %}
+                                        <span class="text-muted text-decoration-line-through me-2 small">${{ "%.2f"|format(product.original_price) }}</span>
+                                        <span class="h6 text-primary mb-0">${{ "%.2f"|format(product.price) }}</span>
+                                        <span class="text-danger ms-1 small">-{{ "%.0f"|format(((product.original_price - product.price) / product.original_price) * 100) }}%</span>
+                                    {% else %}
+                                        <span class="h6 text-primary mb-0">${{ "%.2f"|format(product.price) }}</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ product.stock }} in stock</small>
+                            </div>
+
+                            
+                            <div class="mt-1 mb-0 small">
+                                <small class="text-muted"><i class="fas fa-truck me-1"></i>FREE delivery <span class="fw-bold">Mon, 8 Sept</span> on first order</small><br>
+                                <small class="text-muted ms-3">Or fastest delivery <span class="fw-bold">Tomorrow, 7 Sept</span></small>
+                            </div>
+                            
+                            <div class="d-flex gap-2 mt-auto">
+                                {% if current_user.is_authenticated and current_user.role == 'customer' %}
+                                    <a href="{{ url_for('main.add_to_cart', product_id=product.id) }}" 
+                                       class="btn btn-primary btn-sm flex-grow-1">Add to Cart</a>
+                                {% else %}
+                                    <a href="{{ url_for('main.product_detail', product_id=product.id) }}" 
+                                       class="btn btn-primary btn-sm flex-grow-1">View Details</a>
+                                {% endif %}
+                                
+                                {% if current_user.is_authenticated and current_user.role == 'customer' %}
+                                    <button type="button" class="btn btn-outline-danger btn-sm wishlist-btn" data-product-id="{{ product.id }}">
+                                        <i class="{% if product.id in user_wishlist_ids %}fas{% else %}far{% endif %} fa-heart {% if product.id in user_wishlist_ids %}text-danger{% endif %}"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
             {% endfor %}
         </div>
@@ -80,14 +106,16 @@
 </div>
 
 <script>
-function filterByCategory(categoryId) {
-    const url = new URL(window.location);
-    if (categoryId) {
-        url.searchParams.set('category', categoryId);
-    } else {
-        url.searchParams.delete('category');
-    }
-    window.location.href = url.toString();
-}
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.wishlist-btn').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent default button action
+            event.stopPropagation(); // Stop event bubbling to parent link
+            const productId = this.dataset.productId;
+            // Implement AJAX call to add/remove from wishlist
+            window.location.href = `{{ url_for('main.add_to_wishlist', product_id=0) }}`.replace('/0', `/${productId}`);
+        });
+    });
+});
 </script>
 {% endblock %}

@@ -64,6 +64,18 @@
                                               placeholder="Describe your product..."></textarea>
                                 </div>
                                 
+                                <div class="mb-3">
+                                    <label for="brand" class="form-label">Brand</label>
+                                    <input type="text" class="form-control" id="brand" name="brand" placeholder="e.g., CARTADEN">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="dimensions" class="form-label">Dimensions</label>
+                                    <input type="text" class="form-control" id="dimensions" name="dimensions" 
+                                           placeholder="e.g., Large: 35.5x25.4x3.8 cm, Medium: ...">
+                                    <small class="text-muted">Enter dimensions for all product variations (Optional)</small>
+                                </div>
+
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="price" class="form-label">Price ($) *</label>
@@ -72,17 +84,48 @@
                                     </div>
                                     
                                     <div class="col-md-6 mb-3">
+                                        <label for="original_price" class="form-label">Original Price ($)</label>
+                                        <input type="number" class="form-control" id="original_price" name="original_price" 
+                                               step="0.01" min="0">
+                                        <small class="text-muted">Set if product is on discount (Optional)</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
                                         <label for="stock" class="form-label">Stock Quantity *</label>
                                         <input type="number" class="form-control" id="stock" name="stock" 
                                                min="0" required>
                                     </div>
+                                
+                                    <div class="col-md-6 mb-3">
+                                        <label for="sales_count" class="form-label">Sales Count (past month)</label>
+                                        <input type="number" class="form-control" id="sales_count" name="sales_count" 
+                                               min="0" value="0">
+                                        <small class="text-muted">e.g., 200 for '200+ bought' (Optional)</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="ratings" class="form-label">Ratings (1.0 - 5.0)</label>
+                                        <input type="number" class="form-control" id="ratings" name="ratings" 
+                                               step="0.1" min="0.0" max="5.0" value="0.0">
+                                        <small class="text-muted">Average customer rating (Optional)</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="num_ratings" class="form-label">Number of Ratings</label>
+                                        <input type="number" class="form-control" id="num_ratings" name="num_ratings" 
+                                               min="0" value="0">
+                                        <small class="text-muted">Total number of customer ratings (Optional)</small>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-4">
-                                    <label for="image" class="form-label">Product Image</label>
-                                    <input type="file" class="form-control" id="image" name="image" 
-                                           accept="image/*">
-                                    <small class="text-muted">Upload an image for your product (Optional)</small>
+                                    <label for="images" class="form-label">Product Images</label>
+                                    <input type="file" class="form-control" id="images" name="images" 
+                                           accept="image/*" multiple>
+                                    <small class="text-muted">Upload multiple images for your product (Optional)</small>
                                 </div>
                                 
                                 <div class="d-flex justify-content-end gap-2">

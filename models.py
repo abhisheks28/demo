@@ -1,7 +1,13 @@
 from datetime import datetime, timedelta
 from app import db
 from flask_login import UserMixin
-from sqlalchemy import func
+from sqlalchemy import func, Table, Column, Integer, ForeignKey
+
+# Association table for Super Admins and Categories
+super_admin_categories = db.Table('super_admin_categories',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('category_id', db.Integer, db.ForeignKey('categories.id'), primary_key=True)
+)
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -20,6 +26,7 @@ class User(UserMixin, db.Model):
     orders = db.relationship('Order', backref='customer', lazy=True)
     cart_items = db.relationship('Cart', backref='user', lazy=True)
     wishlist_items = db.relationship('Wishlist', backref='user', lazy=True)
+    categories = db.relationship('Category', secondary=super_admin_categories, backref='super_admins', lazy='dynamic')
 
 class Category(db.Model):
     __tablename__ = 'categories'
@@ -39,10 +46,16 @@ class Product(db.Model):
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
     price = db.Column(db.Numeric(10, 2), nullable=False)
+    original_price = db.Column(db.Numeric(10, 2), nullable=True) # For discount pricing
     stock = db.Column(db.Integer, nullable=False, default=0)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
     super_admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    image_url = db.Column(db.String(200), default='https://via.placeholder.com/300x300?text=No+Image')
+    image_url = db.Column(db.String(200), default=None) # Primary image
+    brand = db.Column(db.String(100), nullable=True)
+    dimensions = db.Column(db.String(200), nullable=True) # e.g., "Large: 35.5x25.4x3.8 cm, Medium: ..."
+    ratings = db.Column(db.Numeric(2, 1), default=0.0)
+    num_ratings = db.Column(db.Integer, default=0)
+    sales_count = db.Column(db.Integer, default=0) # For "200+ bought in past month"
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -84,6 +97,22 @@ class Order(db.Model):
         # Set expected delivery date to 5 days from order date
         self.expected_delivery_date = datetime.utcnow() + timedelta(days=5)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'customer_id': self.customer_id,
+            'total_amount': float(self.total_amount),
+            'status': self.status,
+            'payment_method': self.payment_method,
+            'payment_status': self.payment_status,
+            'shipping_address': self.shipping_address,
+            'phone': self.phone,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'expected_delivery_date': self.expected_delivery_date.isoformat() if self.expected_delivery_date else None,
+            'order_items': [item.to_dict() for item in self.order_items] if self.order_items else [],
+            'customer_name': self.customer.name if self.customer else None # Include customer name
+        }
+
 class OrderItem(db.Model):
     __tablename__ = 'order_items'
     
@@ -92,6 +121,16 @@ class OrderItem(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)  # Price at the time of order
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'product_id': self.product_id,
+            'quantity': self.quantity,
+            'price': float(self.price),
+            'product_name': self.product.name if self.product else None  # Assuming a relationship to Product model
+        }
 
 class Cart(db.Model):
     __tablename__ = 'cart'

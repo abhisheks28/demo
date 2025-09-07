@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom CSS -->
@@ -19,7 +21,7 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold text-primary" href="{{ url_for('main.index') }}">
-                <i class="fas fa-store me-2"></i>MSR Shop
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="MSR Shop Logo" style="height: 40px;">
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -28,65 +30,105 @@
             
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.products') }}">Products</a>
-                    </li>
+                    
+                    
                 </ul>
                 
+                <!-- Search Bar -->
+                {% if not (current_user.is_authenticated and current_user.role == 'admin' and request.endpoint == 'main.admin_dashboard') %}
+                <form class="d-flex my-2 my-lg-0 custom-search-bar" action="{{ url_for('main.products') }}" method="get">
+                    <div class="input-group">
+                        <select class="form-select custom-dropdown" name="category" aria-label="Search Category">
+                            <option value="">All</option>
+                            {% for category in all_categories %}
+                            <option value="{{ category.id }}" {% if request.args.get('category') == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <input class="form-control custom-search-input" type="search" placeholder="Search MSR Shop" aria-label="Search" name="search" value="{{ request.args.get('search', '') }}">
+                        <button class="btn custom-search-button" type="submit"><i class="fas fa-search"></i></button>
+                    </div>
+                </form>
+                {% endif %}
+
                 <ul class="navbar-nav">
-                    {% if current_user.is_authenticated %}
-                        {% if current_user.role == 'admin' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}">
-                                    <i class="fas fa-tachometer-alt me-1"></i>Admin Dashboard
-                                </a>
-                            </li>
-                        {% elif current_user.role == 'super_admin' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.super_admin_dashboard') }}">
-                                    <i class="fas fa-store-alt me-1"></i>My Store
-                                </a>
-                            </li>
-                        {% else %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.cart') }}">
-                                    <i class="fas fa-shopping-cart me-1"></i>Cart
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.wishlist') }}">
-                                    <i class="fas fa-heart me-1"></i>Wishlist
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.orders') }}">
-                                    <i class="fas fa-box me-1"></i>Orders
-                                </a>
-                            </li>
-                        {% endif %}
+                    {% if current_user.is_authenticated and current_user.role == 'admin' and request.endpoint == 'main.admin_dashboard' %}
                         
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i>{{ current_user.name }}
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="{{ url_for('main.admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-1"></i>Admin Dashboard
                             </a>
-                            <ul class="dropdown-menu">
-                                {% if current_user.role == 'customer' %}
-                                    <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profile</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                {% endif %}
-                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
-                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.admin_super_admins') }}">
+                                <i class="fas fa-users-cog me-1"></i>Super Admins
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.admin_super_admins') }}">
+                                <i class="fas fa-store me-1"></i>Vendors
+                            </a>
+                        </li>
+                        {# Direct Logout button for authenticated admins on dashboard #}
+                        <li class="nav-item">
+                            <a class="nav-link ms-lg-2" href="{{ url_for('auth.logout') }}">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                            </a>
                         </li>
                     {% else %}
+                        {# Original navigation structure for other roles or admin not on dashboard #}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+                            <a class="nav-link" href="{{ url_for('main.products') }}">Products</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
-                        </li>
+                        {% if current_user.is_authenticated %}
+                            {% if current_user.role == 'admin' %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}">
+                                        <i class="fas fa-tachometer-alt me-1"></i>Admin Dashboard
+                                    </a>
+                                </li>
+                            {% elif current_user.role == 'super_admin' %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('main.super_admin_dashboard') }}">
+                                        <i class="fas fa-store-alt me-1"></i>My Store
+                                    </a>
+                                </li>
+                            {% else %} {# customer #}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('main.cart') }}">
+                                        <i class="fas fa-shopping-cart me-1"></i>Cart
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('main.wishlist') }}">
+                                        <i class="fas fa-heart me-1"></i>Wishlist
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('main.orders') }}">
+                                        <i class="fas fa-box me-1"></i>Orders
+                                    </a>
+                                </li>
+                            {% endif %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user me-1"></i>{{ current_user.name }}
+                                </a>
+                                <ul class="dropdown-menu">
+                                    {% if current_user.role == 'customer' %}
+                                        <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profile</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                                </ul>
+                            </li>
+                        {% else %} {# Not authenticated #}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
+                            </li>
+                        {% endif %}
                     {% endif %}
                 </ul>
             </div>
@@ -128,7 +170,21 @@
     </footer>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        // Initialize Bootstrap carousel and set interval
+        var myCarousel = document.querySelector('#carouselExampleIndicators');
+        if (myCarousel) {
+            var carousel = new bootstrap.Carousel(myCarousel, {
+                interval: 5000, // 5 seconds
+                wrap: true
+            });
+        }
+    </script>
+    <!-- jQuery (Select2 requires jQuery) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}

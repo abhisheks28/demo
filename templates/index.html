@@ -3,23 +3,24 @@
 {% block title %}MSR Shop - Your Trusted E-commerce Platform{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="hero-section bg-primary text-white py-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1 class="display-4 fw-bold mb-3">Welcome to MSR Shop</h1>
-                <p class="lead mb-4">Discover amazing products from trusted sellers. Shop with confidence and enjoy fast delivery.</p>
-                <a href="{{ url_for('main.products') }}" class="btn btn-light btn-lg">
-                    <i class="fas fa-shopping-bag me-2"></i>Start Shopping
-                </a>
+<!-- Custom Image Slider Section -->
+{% if slider_images %}
+<section class="container mt-4">
+    <div class="custom-slider-container">
+        <div class="custom-slider-track">
+            {% for image in slider_images %}
+            <div class="custom-slider-item">
+                <img src="{{ image }}" alt="Slide Image">
             </div>
-            <div class="col-lg-6 text-center">
-                <i class="fas fa-store display-1"></i>
-            </div>
+            {% endfor %}
+        </div>
+        <div class="slider-controls">
+            <button class="btn btn-secondary slider-btn-left" id="prevSlide"><i class="fas fa-chevron-left"></i></button>
+            <button class="btn btn-secondary slider-btn-right" id="nextSlide"><i class="fas fa-chevron-right"></i></button>
         </div>
     </div>
 </section>
+{% endif %}
 
 <!-- Categories Section -->
 {% if categories %}
@@ -29,12 +30,12 @@
         <div class="row">
             {% for category in categories %}
             <div class="col-md-4 col-lg-3 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center">
-                        <i class="fas fa-tag fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">{{ category.name }}</h5>
-                        <p class="card-text text-muted">{{ category.description or 'Explore products in this category' }}</p>
-                        <a href="{{ url_for('main.products', category=category.id) }}" class="btn btn-outline-primary">View Products</a>
+                <div class="card h-100 border-0 shadow-sm category-card">
+                    <h5 class="card-title text-center p-2" style="color: #000; background-color: #fff;">{{ category.name }}</h5>
+                    <div class="card-body category-image-content d-flex flex-column justify-content-center align-items-center position-relative"
+                         {% if category.icon_url %}style="background-image: url('{{ category.icon_url }}');"{% endif %}>
+                        <p class="card-text position-relative">{{ category.description or 'Explore products in this category' }}</p>
+                        <a href="{{ url_for('main.products', category=category.id) }}" class="btn btn-light btn-sm mt-auto position-relative">View Products</a>
                     </div>
                 </div>
             </div>
