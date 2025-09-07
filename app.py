@@ -7,6 +7,7 @@ from flask_login import LoginManager
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from supabase import create_client, Client
+import uuid # Import the uuid module
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
@@ -43,6 +44,7 @@ def create_app():
     # Configure Supabase credentials
     app.config["SUPABASE_URL"] = os.environ.get("SUPABASE_URL")
     app.config["SUPABASE_KEY"] = os.environ.get("SUPABASE_KEY")
+    app.config["SUPABASE_PRODUCTS_BUCKET"] = os.environ.get("SUPABASE_PRODUCTS_BUCKET", "product-images") # Default to 'product-images'
 
     # Configure upload folder
     # app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -62,6 +64,7 @@ def create_app():
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
+    # from api import api_bp # Commented out as api.py not found or not in use
     # app.register_blueprint(api_bp) # Commented out as api.py not found or not in use
 
     @login_manager.user_loader
@@ -106,6 +109,7 @@ def init_db_and_admin(app):
         admin_user = User.query.filter_by(email='admin@msrshop.com').first()
         if not admin_user:
             admin_user = User(
+                id=str(uuid.uuid4()), # Generate a UUID for the admin user
                 name='System Admin',
                 email='admin@msrshop.com',
                 password_hash=generate_password_hash('admin123'),
@@ -118,4 +122,4 @@ def init_db_and_admin(app):
 if __name__ == '__main__':
     app = create_app()
     init_db_and_admin(app)
-    # app.run(debug=True) # This line is removed as per the new_code.
+    app.run(debug=True)

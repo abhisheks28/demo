@@ -10,6 +10,7 @@ from sqlalchemy import func, desc
 from app import supabase_client
 import io
 from supabase.lib.client_options import ClientOptions
+import uuid # Import the uuid module
 
 main_bp = Blueprint('main', __name__)
 
@@ -152,6 +153,7 @@ def create_super_admin():
     
     # Create admin user with unique code (they will register later)
     admin_user = User(
+        id=str(uuid.uuid4()), # Generate a UUID for the super admin user
         name=username,
         email=email,
         password_hash='',  # Will be set during registration
@@ -176,7 +178,7 @@ def create_super_admin():
     
     return redirect(url_for('main.admin_super_admins'))
 
-@main_bp.route('/admin/toggle-super-admin/<int:user_id>')
+@main_bp.route('/admin/toggle-super-admin/<string:user_id>')
 @login_required
 @admin_required
 def toggle_super_admin(user_id):
@@ -284,27 +286,20 @@ def add_product():
                         
                         # Upload to Supabase Storage
                         try:
+                            bucket_name = current_app.config["SUPABASE_PRODUCTS_BUCKET"]
                             with io.BytesIO(file.read()) as data:
-                                res = authenticated_supabase_client.storage.from_("product-images").upload(filename, data.getvalue(), {"content-type": file.content_type})
+                                res = authenticated_supabase_client.storage.from_(bucket_name).upload(filename, data.getvalue(), {"content-type": file.content_type})
                             
-                            # Check for error in the response object
-                            upload_error = None
-                            if isinstance(res, dict):
-                                upload_error = res.get("error", {}).get("message")
-                            # If it's an UploadResponse object and successful, it won't have an 'error' attribute
-                            # Only check for .error if it's explicitly present (e.g., a specific error response object)
-                            elif hasattr(res, "error") and res.error is not None:
-                                upload_error = res.error.message
-
-                            if upload_error:
+                            # Supabase upload response is usually a dictionary on success with 'Key' or 'path', or raises exception on error
+                            # Check if res is a dictionary and contains an error key (though client library usually raises exceptions for errors)
+                            if isinstance(res, dict) and res.get('error'):
+                                upload_error = res['error'].get('message', 'Unknown Supabase upload error')
                                 current_app.logger.error(f"Supabase upload error for {filename}: {upload_error}")
                                 raise Exception(upload_error)
                             
                             # Get public URL
-                            public_url_response = authenticated_supabase_client.storage.from_("product-images").get_public_url(filename)
+                            public_url_response = authenticated_supabase_client.storage.from_(bucket_name).get_public_url(filename)
                             
-                            # The get_public_url method directly returns the URL string, or None if not found.
-                            # No need to check for .error or .get('error') here.
                             image_url = public_url_response
                             uploaded_image_urls.append(image_url)
                         except Exception as e:
@@ -337,7 +332,7 @@ def add_product():
     
     return render_template('super_admin/add_product.html', categories=categories)
 
-@main_bp.route('/super-admin/edit-product/<int:product_id>', methods=['GET', 'POST'])
+@main_bp.route('/super-admin/edit-product/<string:product_id>', methods=['GET', 'POST'])
 @login_required
 @super_admin_required
 def edit_product(product_id):
@@ -372,22 +367,18 @@ def edit_product(product_id):
                         
                         # Upload to Supabase Storage
                         try:
+                            bucket_name = current_app.config["SUPABASE_PRODUCTS_BUCKET"]
                             with io.BytesIO(file.read()) as data:
-                                res = authenticated_supabase_client.storage.from_("product-images").upload(filename, data.getvalue(), {"content-type": file.content_type})
-                            
-                            upload_error = None
-                            if isinstance(res, dict):
-                                upload_error = res.get("error", {}).get("message")
-                            elif hasattr(res, "error") and res.error is not None:
-                                upload_error = res.error.message
-
-                            if upload_error:
+                                res = authenticated_supabase_client.storage.from_(bucket_name).upload(filename, data.getvalue(), {"content-type": file.content_type})
+                                    
+                            if isinstance(res, dict) and res.get('error'):
+                                upload_error = res['error'].get('message', 'Unknown Supabase upload error during edit')
                                 current_app.logger.error(f"Supabase upload error for {filename} during edit: {upload_error}")
                                 raise Exception(upload_error)
-                            
+
                             # Get public URL
-                            public_url_response = authenticated_supabase_client.storage.from_("product-images").get_public_url(filename)
-                            image_url = public_url_response # This directly returns the URL string
+                            public_url_response = authenticated_supabase_client.storage.from_(bucket_name).get_public_url(filename)
+                            image_url = public_url_response
                         except Exception as e:
                             flash(f'Failed to upload image to Supabase: {str(e)}', 'error')
                             current_app.logger.error(f"Supabase upload exception during edit: {str(e)}")

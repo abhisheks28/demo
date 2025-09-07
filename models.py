@@ -5,14 +5,14 @@ from sqlalchemy import func, Table, Column, Integer, ForeignKey
 
 # Association table for Super Admins and Categories
 super_admin_categories = db.Table('super_admin_categories',
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('user_id', db.String(36), db.ForeignKey('users.id'), primary_key=True),
     db.Column('category_id', db.Integer, db.ForeignKey('categories.id'), primary_key=True)
 )
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True) # Changed to String to store UUID
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
@@ -49,7 +49,7 @@ class Product(db.Model):
     original_price = db.Column(db.Numeric(10, 2), nullable=True) # For discount pricing
     stock = db.Column(db.Integer, nullable=False, default=0)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
-    super_admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    super_admin_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False) # Changed to String to store UUID
     image_url = db.Column(db.String(200), default=None) # Primary image
     brand = db.Column(db.String(100), nullable=True)
     dimensions = db.Column(db.String(200), nullable=True) # e.g., "Large: 35.5x25.4x3.8 cm, Medium: ..."
@@ -78,7 +78,7 @@ class Order(db.Model):
     __tablename__ = 'orders'
     
     id = db.Column(db.Integer, primary_key=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    customer_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False) # Changed to String to store UUID
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     status = db.Column(db.String(50), nullable=False, default='pending')  # pending, processing, shipped, delivered, cancelled
     payment_method = db.Column(db.String(50), nullable=False)  # cod, online
@@ -136,7 +136,7 @@ class Cart(db.Model):
     __tablename__ = 'cart'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False) # Changed to String to store UUID
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -145,7 +145,7 @@ class Wishlist(db.Model):
     __tablename__ = 'wishlist'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False) # Changed to String to store UUID
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
